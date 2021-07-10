@@ -85,7 +85,12 @@ typedef NS_ENUM(NSInteger, Detector) {
 @property int rightMinDistance;
 @property int leftCloseCount;
 @property int rightCloseCount;
+@property int leftOpenCount;
+@property int rightOpenCount;
 @property AVAudioPlayer *player;
+@property (nonatomic) bool isNoResult;
+@property (nonatomic) int isNoResultCount;
+@property (nonatomic) bool isplaying;
 @end
 
 @implementation CameraViewController
@@ -114,7 +119,7 @@ typedef NS_ENUM(NSInteger, Detector) {
     
     AVAudioSession * session = [AVAudioSession sharedInstance];
     [session setCategory: AVAudioSessionCategoryPlayback error: nil];
-    
+    self.isNoResult = false;
     _leftEyePoints = [[NSMutableArray alloc] init];
     _rightEyePoints = [[NSMutableArray alloc] init];
     _leftMaxDistance= 0;
@@ -123,6 +128,10 @@ typedef NS_ENUM(NSInteger, Detector) {
     _rightMinDistance = 0;
     _leftCloseCount = 0;
     _rightCloseCount = 0;
+    _isNoResultCount = 0;
+    _leftOpenCount = 0;
+    _rightOpenCount = 0;
+    _isplaying = false;
   _detectors = @[@(DetectorOnDeviceAutoMLImageLabeler),
                  @(DetectorOnDeviceFace),
                  @(DetectorOnDeviceText),
@@ -325,17 +334,33 @@ typedef NS_ENUM(NSInteger, Detector) {
     NSLog(@"Failed to detect faces with error: %@", error.localizedDescription);
     return;
   }
+    
   if (faces.count == 0) {
     //NSLog(@"%@", @"On-Device face detector returned no results.");
       // will add no detection face -> down
-      if(_rightMaxDistance != 0 && _leftMaxDistance != 0)
-      [self NoResultAlret];
-      
+      if(_rightMaxDistance != 0 && _leftMaxDistance != 0){
+          _isNoResultCount++;
+          if(_isNoResultCount > 20){
+              _isNoResultCount = 0;
+              self.isNoResult = true;
+              [self NoResultAlret];
+              
+          }
+          
+      }
     dispatch_sync(dispatch_get_main_queue(), ^{
       [self updatePreviewOverlayView];
       [self removeDetectionAnnotations];
     });
     return;
+  }
+  else {
+      if(self.isNoResult)
+      {
+          self.isNoResult = false;
+          _isNoResultCount = 0;
+          [self.player stop];
+      }
   }
 
   dispatch_sync(dispatch_get_main_queue(), ^{
@@ -792,13 +817,19 @@ typedef NS_ENUM(NSInteger, Detector) {
             _leftCloseCount = 0;
             _leftMinDistance = distance;
         }
-        if((_leftMaxDistance+_leftMinDistance)/2>distance) _leftCloseCount++;
-        else _leftCloseCount = 0;
+        int avg = (_leftMaxDistance+_leftMinDistance)/2;
+        if(avg < 0) avg = -avg;
+        if(avg>distance) _leftCloseCount++;
+        else if((_leftMaxDistance+_leftMinDistance)/2<distance-2){
+            if(self.player.isPlaying) [self.player stop];
+            _leftOpenCount++;
+        }
         [_leftEyePoints removeAllObjects];
     }
 }
 
 -(void) CalRightLength{
+    _isNoResultCount = 0;
     if([_rightEyePoints count]<=0)return;
     else {
         float MaxY = 0.0;
@@ -818,32 +849,43 @@ typedef NS_ENUM(NSInteger, Detector) {
             _rightCloseCount = 0;
             _rightMinDistance = distance;
         }
-        if((_rightMaxDistance+_rightMinDistance)/2>distance) _rightCloseCount++;
-        else _rightCloseCount = 0;
+        int avg = (_rightMaxDistance+_rightMinDistance)/2;
+        if(avg < 0) avg = -avg;
+        if(avg>distance) _rightCloseCount++;
+        else if((_rightMaxDistance+_rightMinDistance)/2<distance-2){
+            if(self.player.isPlaying) [self.player stop];
+            _rightOpenCount++;
+            }
         [_rightEyePoints removeAllObjects];
     }
 }
 
 -(void) CalTired{
-    if(_rightCloseCount > 20 && _leftCloseCount>20){
+    if(_rightCloseCount > 20 && _leftCloseCount>20 && !_isplaying){
         _rightCloseCount = 0;
         _leftCloseCount = 0;
-        _rightMaxDistance = 0;
-        _leftMaxDistance = 0;
-        _rightMinDistance = 0;
-        _leftMinDistance = 0;
+        //_rightMaxDistance = 0;
+        //_leftMaxDistance = 0;
+        //_rightMinDistance = 0;
+        //_leftMinDistance = 0;
         NSLog(@"Tired!!");
-        [self stopSession];
-        NSString *scanSoundPath = [[NSBundle mainBundle] pathForResource:@"sample"
-                                                                  ofType:@"mp3"];
+        //[self stopSession];
+        NSString *scanSoundPath = [[NSBundle mainBundle] pathForResource:@"alarm"
+                                                                  ofType:@"wav"];
         NSLog(@"%@",scanSoundPath);
         NSURL *scanSoundURL = [NSURL fileURLWithPath:scanSoundPath];
         self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:scanSoundURL
                                                                        error:nil];
         self.player.volume = 1.0;
+        self.player.numberOfLoops = -1;
         [self playSound];
     }
-    
+    else if(_rightOpenCount > 4 && _leftOpenCount > 4) {
+        [self.player stop];
+        _isplaying = false;
+        _rightOpenCount = 0;
+        _leftOpenCount = 0;
+    }
 }
 -(void) NoResultAlret{
     _rightCloseCount = 0;
@@ -853,20 +895,28 @@ typedef NS_ENUM(NSInteger, Detector) {
     _rightMinDistance = 0;
     _leftMinDistance = 0;
     NSLog(@"Tired!!");
-    [self stopSession];
-    NSString *scanSoundPath = [[NSBundle mainBundle] pathForResource:@"sample"
-                                                              ofType:@"mp3"];
+    //[self stopSession];
+    NSString *scanSoundPath = [[NSBundle mainBundle] pathForResource:@"alarm"
+                                                              ofType:@"wav"];
     NSLog(@"%@",scanSoundPath);
     NSURL *scanSoundURL = [NSURL fileURLWithPath:scanSoundPath];
     self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:scanSoundURL
                                                          error:nil];
     self.player.volume = 1.0;
+    self.player.numberOfLoops = -1;
     [self playSound];
-    
 }
 -(void) playSound{
-    [self.player play];
-    
+    if(!_isplaying)
+    {
+        [self.player play];
+        _isplaying = true;
+    }
+    else if(_isNoResult && !_isplaying)
+    {
+        [self.player play];
+    }
+    /*
     UIAlertController * alert=   [UIAlertController
                                   alertControllerWithTitle:@"Tired!!!!"
                                   message:@"Wake Up!!!!"
@@ -884,7 +934,7 @@ typedef NS_ENUM(NSInteger, Detector) {
     
     [alert addAction:ok];
     [self presentViewController:alert animated:YES completion:nil];
-    
+    */
     
 }
 
