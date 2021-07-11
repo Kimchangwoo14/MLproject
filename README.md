@@ -1,17 +1,17 @@
-### Project Introduction
-OpenCV를 바탕으로 얼굴 인식을 통해 피곤함 감지 알고리즘을 활용한 프로그램과 CO2센서를 장착한 아두이노 졸음운전 방지 시스템
+# Project Introduction
+### OpenCV를 바탕으로 얼굴 인식을 통해 피곤함 감지 알고리즘을 활용한 프로그램과 CO2센서를 장착한 아두이노 졸음운전 방지 시스템
 ---
 
 
-### Development Environment
+# Development Environment
 
-# OS 
+### OS 
 - MacOS
 
-# Tool 
+### Tool 
 - Xcode
 
-# Language 
+### Language 
 - Objective-C
 
 
