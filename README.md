@@ -1,3 +1,22 @@
+### Project Introduction
+OpenCV를 바탕으로 얼굴 인식을 통해 피곤함 감지 알고리즘을 활용한 프로그램과 CO2센서를 장착한 아두이노 졸음운전 방지 시스템
+---
+
+
+### Development Environment
+
+# OS 
+- MacOS
+
+# Tool 
+- Xcode
+
+# Language 
+- Objective-C
+
+
+![image](https://user-images.githubusercontent.com/45789578/125185812-d77e0f00-e261-11eb-90cb-a0327da3680f.png)
+
 <img width="961" alt="사용자 요구사항 정의서" src="https://user-images.githubusercontent.com/45789578/125185702-427b1600-e261-11eb-9552-19bfb1b9ceb1.png">
 
 
