@@ -1,4 +1,8 @@
-![image ](사용자 요구사항 정의서.png)
+<img width="961" alt="사용자 요구사항 정의서" src="https://user-images.githubusercontent.com/45789578/125185702-427b1600-e261-11eb-9552-19bfb1b9ceb1.png">
+
+
+
+![클래스구조도](https://user-images.githubusercontent.com/45789578/125185674-237c8400-e261-11eb-924b-ed7e5711de25.png)
 
 
 
